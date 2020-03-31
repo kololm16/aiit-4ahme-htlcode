@@ -10,21 +10,23 @@ package k22.k22_3.k22_3_2;
  * @author olive
  */
 public class PrimeNumberTools {
-    int whichprime = 1;
-    int prime;
-    
-    String prefix = "primeFactors("+ num +")";
-    while (num > 1) {
-        prime = getPrime(whichprime);
-        if (num % prime == 0) {
-            System.out.println(prefix+prime);
-            prefix = " ";
-            num /= prime;
-        } else {
-            ++whichprime;
+    public void printPrimeFactors(int num) {
+        int whichprime = 1;
+        int prime;
+
+        String prefix = "primeFactors("+ num +")";
+        while (num > 1) {
+            prime = getPrime(whichprime);
+            if (num % prime == 0) {
+                System.out.println(prefix+prime);
+                prefix = " ";
+                num /= prime;
+            } else {
+                ++whichprime;
+            }
         }
+        System.out.println();
     }
-    System.out.println();
 
     public int getPrime(int cnt) {
         int i = 1;
@@ -47,6 +49,5 @@ public class PrimeNumberTools {
         }
         return true;
     }
-
 }   
     
