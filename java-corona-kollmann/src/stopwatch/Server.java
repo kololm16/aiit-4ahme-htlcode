@@ -5,6 +5,7 @@
  */
 package stopwatch;
 
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
@@ -14,32 +15,9 @@ import java.util.List;
  * @author olive
  */
 public class Server {
-    final List<ConnectionHandler> handlers = new List<>();
-    ServerSocket serversocket = new ServerSocket();
-    long timeOffset;
-    long startMillis;
-    
-    public void start (int port) {
-    timeOffset = 0;
-    startMillis = System.currentTimeMillis();
-    
-    }
-    
-    public boolean isTimerRunning() {
-        return false;
-    }
-    
-    public long getTimerMillis() {
-        return 0;
-    }
-    
-    public static void main(String[] args) {
-        
-    }
-    
-    class ConnectionHandler implements Runnable {
-        Socket socket;
-        boolean master;
+    private class ConnectionHandler implements Runnable {
+        private Socket socket;
+        private boolean master;
 
         public ConnectionHandler(Socket socket) {
             this.socket = socket;
@@ -55,5 +33,38 @@ public class Server {
         
         public void run() { 
         }
+    }
+    
+    private ServerSocket serverSocket;
+    private final List<ConnectionHandler> handlers;
+    private long timeOffset;
+    private long startMillis;
+
+    public Server(List<ConnectionHandler> handlers) {
+        this.handlers = handlers;
+    }
+    
+    public void start (int port) throws IOException{
+        serverSocket = new ServerSocket(port);
+        timeOffset = 0;
+        while (true) {
+            Socket clientSocket = serverSocket.accept();
+            ConnectionHandler h = new ConnectionHandler(clientSocket);
+            handlers.add(h);
+        }
+       
+    }
+    
+    public boolean isTimerRunning() {
+        return startMillis > 0;
+    }
+    
+    public long getTimerMillis() {     
+        return timeOffset;
+    }
+    
+    public static void main(String[] args) throws IOException {
+        Server server = new Server();
+        server.start(0);
     }
 }
