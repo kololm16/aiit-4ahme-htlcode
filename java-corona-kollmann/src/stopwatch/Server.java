@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package stopwatch;
 
 import com.google.gson.Gson;
@@ -21,54 +16,6 @@ import java.util.List;
  */
 public class Server {
 
-    private class Request {
-        private boolean master;
-        private boolean start;
-        private boolean stop;
-        private boolean clear;
-        private boolean end;
-        
-        private boolean isMaster() {
-            return master;
-        }
-        
-        private boolean isStart() {
-            return start;
-        }
-        
-        private boolean isStop() {
-            return stop;
-        }
-        
-        private boolean isClear() {
-            return clear;
-        }
-        
-        private boolean isEnd() {
-            return end;
-        }
-
-        public void setMaster(boolean master) {
-            this.master = master;
-        }
-
-        public void setStart(boolean start) {
-            this.start = start;
-        }
-
-        public void setStop(boolean stop) {
-            this.stop = stop;
-        }
-
-        public void setClear(boolean clear) {
-            this.clear = clear;
-        }
-
-        public void setEnd(boolean end) {
-            this.end = end;
-        }
-    }
-    
     private class ConnectionHandler implements Runnable {
         private final Socket socket;
         private boolean master;
@@ -101,6 +48,7 @@ public class Server {
                             master = true;
                             if(c != this && c.isMaster() == true) {
                                 master = false;
+                                //response senden
                                 break;
                             }
                         }
@@ -131,11 +79,16 @@ public class Server {
                 }    
             } catch (Exception ex) {
                 ex.printStackTrace();
+                try{
+                    socket.close();
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
             }
         }
     }
     
-    private final ServerSocket serverSocket;
+    private ServerSocket serverSocket;
     private final List<ConnectionHandler> handlers = new ArrayList<>();
     private long timeOffset;
     private long startMillis;
@@ -147,10 +100,15 @@ public class Server {
         while(true) {
             final Socket clientSocket = serverSocket.accept();
             //TODO Überprüfen, welche Handler entfernt werden können
-            if(handlers.size() < 3) {
+            if(handlers.size() < 3) { //maximal 3 Verbindungen erlaubt
                 final ConnectionHandler handler = new ConnectionHandler(clientSocket);
                 new Thread(handler).start(); // Hintergrundthread
                 handlers.add(handler);
+                for(int i = 0; i < 3; i++) {     // inaktive Verbindungen schließen
+                    if(!clientSocket.isConnected()) {
+                        clientSocket.close();
+                    }
+                }
             } else {
                 clientSocket.close();
             }
