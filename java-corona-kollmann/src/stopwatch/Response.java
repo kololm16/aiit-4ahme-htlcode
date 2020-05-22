@@ -6,11 +6,11 @@ package stopwatch;
  */
 public class Response {
     public Boolean master;
-    public Long count;
+    public int count;
     public Boolean running;
     public Long time;
 
-    public Response(Boolean master, Long count, Boolean running, Long time) {
+    public Response(Boolean master, int count, Boolean running, Long time) {
         this.master = master;
         this.count = count;
         this.running = running;
@@ -29,7 +29,7 @@ public class Response {
         return count;
     }
 
-    public void setCount(long count) {
+    public void setCount(int count) {
         this.count = count;
     }
 
@@ -48,4 +48,9 @@ public class Response {
     public void setTime(long time) {
         this.time = time;
     } 
+
+    @Override
+    public String toString() {
+        return "Response{" + "master=" + master + ", count=" + count + ", running=" + running + ", time=" + time + '}';
+    }
 }
