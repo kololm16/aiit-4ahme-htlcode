@@ -2,6 +2,7 @@ package stopwatch;
 
 import com.google.gson.Gson;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -25,36 +26,45 @@ public class Server {
 
     public void start(int port) throws IOException {
         serversocket = new ServerSocket(port);
+        System.out.println("Server auf Port " + port + "gestartet!");
         timeOffset = 0;
         startMillis = 0;
-
+        
         while (true) {
-            final Socket clientSocket = serversocket.accept();
-            for (ConnectionHandler h : handlers) {
-                if (h.isClosed()) {
-                    handlers.remove(h);
+            Socket clientSocket = serversocket.accept();
+            synchronized (handlers) {
+                for (int i = 0; i < handlers.size(); i++) {
+                    ConnectionHandler h = handlers.get(i);
+                    if (h.isClosed()) {
+                        handlers.remove(i--);
+                    }
                 }
-            }
-            if (handlers.size() < 3) { //maximal 3 Verbindungen erlaubt
-                final ConnectionHandler handler = new ConnectionHandler(clientSocket);
-                new Thread(handler).start(); // Hintergrundthread
-                handlers.add(handler);
-            } else {
-                clientSocket.close();
+                if (handlers.size() < 3) { //maximal 3 Verbindungen erlaubt
+                    ConnectionHandler handler = new ConnectionHandler(clientSocket);
+                    handlers.add(handler);
+                    new Thread(handler).start(); // Hintergrundthread
+                } else {
+                    System.out.println("Connection refused (" + clientSocket.toString() + ")");
+                    clientSocket.close();
+                }
             }
         }
     }
 
     public boolean isTimerRunning() {
-        return startMillis > 0;
+        synchronized (handlers) {
+            return startMillis > 0;
+        } 
     }
 
     public long getTimerMillis() {
-        if (startMillis == 0) {
-            return timeOffset;
-        } else {
-            return System.currentTimeMillis() - startMillis + timeOffset;
-        }
+        synchronized (handlers) {
+            if (startMillis <= 0) {
+                return timeOffset;
+            } else {
+                return System.currentTimeMillis() - startMillis + timeOffset;
+            }
+        }      
     }
 
     public static void main(String[] args) throws IOException {
@@ -68,11 +78,14 @@ public class Server {
         private boolean master;
 
         public ConnectionHandler(Socket socket) {
+            if(socket == null) {
+                throw new NullPointerException();
+            }
             this.socket = socket;
         }
 
         public boolean isClosed() {
-            return socket.isClosed();
+            return socket == null || socket.isClosed();
         }
 
         public boolean isMaster() {
@@ -81,70 +94,85 @@ public class Server {
 
         @Override
         public void run() {
-
             int count = 0;
-            while (true) {
-                try {
-                    final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    final OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream());
+            try {
+                System.out.println("ServerHandler Thread gestartet, Socket: " + socket);
+                final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                Gson gson = new Gson();
+                
+                while(true) {
                     final String line = reader.readLine(); // Zeichen werden in Line gespeichert.
-                    
                     if (line == null) {
                         socket.close();
                         return;
                     }
-                    
                     count++;
-                    
-                    final Gson gson = new Gson();
-                    gson.toJson(line); // die einkommenden Zeilen werden in ein Objekt gespeichert
-                    System.out.println(line);
-                    final Request r = gson.fromJson(line, Request.class); // neues Request Objekt, welches die Zeilen beinhaltet.
-                    System.out.println(r);
-                    
-                    if (r.isMaster()) {
-                        master = true;
-                        for (ConnectionHandler c : handlers) {
-                            if (c != this && c.isMaster() == true) {
-                                master = false;
-                                //response senden
-                                break;
-                            }
-                        }
-                    }
 
-                    if (master) {
-                        if (r.isStart()) {
-                            startMillis = System.currentTimeMillis();
-                        }
-                        if (r.isClear()) {
-                            if (isTimerRunning()) {
-                                startMillis = System.currentTimeMillis();
+                    gson.toJson(line); // die einkommenden Zeilen werden in ein Objekt gespeichert
+                    final Request requ = gson.fromJson(line, Request.class); // neues Request Objekt, welches die Zeilen beinhaltet.
+                    //System.out.println("request: " + r.toString());
+
+                    if (requ.master != null) {
+                        if(requ.master) {
+                            ConnectionHandler currentMaster = null;
+                            synchronized (handlers) {
+                                for (ConnectionHandler h : handlers) {
+                                    if(h.isMaster() && !h.isClosed()) {
+                                        currentMaster = h;
+                                        break;
+                                    }
+                                }
+                                if (currentMaster == null) {
+                                    master = true;
+                                }
                             }
-                            timeOffset = 0;
-                        }
-                        if (r.isStop()) {
-                            timeOffset = getTimerMillis();
-                            startMillis = 0;
-                        }
-                        if (r.isEnd()) {
-                            serversocket.close();
-                            socket.close();
-                            handlers.remove(this);
-                            return;
+                        } else {
+                            master = false;
                         }
                     }
-                    //Response
-                    final Response resp = new Response(master, count, isTimerRunning(), getTimerMillis());
-                    System.out.println(resp);
+                    
+                    boolean end = false;
+                    synchronized (handlers) {
+                        if (master) {
+                            if (requ.start != null && requ.start) {
+                                if(startMillis <= 0) {
+                                    startMillis = System.currentTimeMillis();
+                                }                            
+                            }
+                            if (requ.stop != null && requ.stop && startMillis > 0) {
+                                timeOffset += System.currentTimeMillis() - startMillis;
+                                startMillis = 0;
+                            }
+                            if (requ.clear != null && requ.clear) {
+                                timeOffset = 0;
+                                if (startMillis > 0) {
+                                    startMillis = System.currentTimeMillis();
+                                }
+                            }
+                            if (requ.end != null && requ.end) {
+                                end = true;
+                            }
+                        }
+                    }
+                    
+                    final Response resp = new Response();
+                    resp.count = count;
+                    resp.master = master;
+                    resp.running = isTimerRunning();
+                    resp.time = getTimerMillis();
                     final String respString = gson.toJson(resp);
-                    System.out.println(respString);
-                    writer.write(respString);
+                    //System.out.println(respString);
+                    writer.write(respString + "\n");
                     writer.flush();
-                } catch (Exception ex) {
-                    ex.printStackTrace();
+                    if (end) {
+                        socket.close();
+                        return;
+                    }
                 }
-            }
+            } catch (Exception ex) {
+                new Exception("SocketHandler Thread fails...", ex).printStackTrace(System.err);
+            } 
         }
     }
 }

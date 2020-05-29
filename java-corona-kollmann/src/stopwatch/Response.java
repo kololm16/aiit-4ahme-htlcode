@@ -16,6 +16,8 @@ public class Response {
         this.running = running;
         this.time = time;
     }
+
+    public Response() {}
     
     public boolean isMaster() {
         return master;
