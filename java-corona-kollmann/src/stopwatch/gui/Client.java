@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package stopwatch;
+package stopwatch.gui;
 
 /**
  *
@@ -26,6 +26,7 @@ public class Client extends javax.swing.JFrame {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
         jpanEast = new javax.swing.JPanel();
         jbutConnect = new javax.swing.JButton();
@@ -35,6 +36,7 @@ public class Client extends javax.swing.JFrame {
         jbutClear = new javax.swing.JButton();
         jbutEnd = new javax.swing.JButton();
         jpanCenter = new javax.swing.JPanel();
+        jlabValue = new javax.swing.JLabel();
         jpanNorth = new javax.swing.JPanel();
         jlabRefreshrate = new javax.swing.JLabel();
         jslideRate = new javax.swing.JSlider();
@@ -42,6 +44,8 @@ public class Client extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
+        jpanEast.setMinimumSize(new java.awt.Dimension(110, 163));
+        jpanEast.setPreferredSize(new java.awt.Dimension(110, 163));
         jpanEast.setLayout(new java.awt.GridLayout(6, 1, 5, 5));
 
         jbutConnect.setText("Connect");
@@ -79,21 +83,20 @@ public class Client extends javax.swing.JFrame {
 
         getContentPane().add(jpanEast, java.awt.BorderLayout.EAST);
 
-        javax.swing.GroupLayout jpanCenterLayout = new javax.swing.GroupLayout(jpanCenter);
-        jpanCenter.setLayout(jpanCenterLayout);
-        jpanCenterLayout.setHorizontalGroup(
-            jpanCenterLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        jpanCenterLayout.setVerticalGroup(
-            jpanCenterLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 264, Short.MAX_VALUE)
-        );
+        jpanCenter.setLayout(new java.awt.GridBagLayout());
+
+        jlabValue.setFont(new java.awt.Font("Tahoma", 1, 100)); // NOI18N
+        jlabValue.setText("0.000");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        jpanCenter.add(jlabValue, gridBagConstraints);
 
         getContentPane().add(jpanCenter, java.awt.BorderLayout.CENTER);
 
         jlabRefreshrate.setText("Refreshrate: 1s");
         jpanNorth.add(jlabRefreshrate);
+
+        jslideRate.setPreferredSize(new java.awt.Dimension(500, 26));
         jpanNorth.add(jslideRate);
 
         jlab1ms.setText("1ms");
@@ -160,6 +163,7 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JButton jbutStop;
     private javax.swing.JLabel jlab1ms;
     private javax.swing.JLabel jlabRefreshrate;
+    private javax.swing.JLabel jlabValue;
     private javax.swing.JPanel jpanCenter;
     private javax.swing.JPanel jpanEast;
     private javax.swing.JPanel jpanNorth;
