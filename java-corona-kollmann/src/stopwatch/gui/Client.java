@@ -5,6 +5,11 @@
  */
 package stopwatch.gui;
 
+import java.awt.Dimension;
+import java.io.IOException;
+import java.util.List;
+import stopwatch.server.Response;
+
 /**
  *
  * @author olive
@@ -16,6 +21,12 @@ public class Client extends javax.swing.JFrame {
      */
     public Client() {
         initComponents();
+        jbutClear.setVisible(false);
+        jbutDisconnect.setVisible(false);
+        jbutEnd.setVisible(false);
+        jbutStart.setVisible(false);
+        jbutStop.setVisible(false);
+        jbutConnect.setVisible(true);
     }
 
     /**
@@ -36,7 +47,7 @@ public class Client extends javax.swing.JFrame {
         jbutClear = new javax.swing.JButton();
         jbutEnd = new javax.swing.JButton();
         jpanCenter = new javax.swing.JPanel();
-        jlabValue = new javax.swing.JLabel();
+        jlabTimer = new javax.swing.JLabel();
         jpanNorth = new javax.swing.JPanel();
         jlabRefreshrate = new javax.swing.JLabel();
         jslideRate = new javax.swing.JSlider();
@@ -49,6 +60,11 @@ public class Client extends javax.swing.JFrame {
         jpanEast.setLayout(new java.awt.GridLayout(6, 1, 5, 5));
 
         jbutConnect.setText("Connect");
+        jbutConnect.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jbutConnectActionPerformed(evt);
+            }
+        });
         jpanEast.add(jbutConnect);
 
         jbutDisconnect.setText("Disconnect");
@@ -85,11 +101,11 @@ public class Client extends javax.swing.JFrame {
 
         jpanCenter.setLayout(new java.awt.GridBagLayout());
 
-        jlabValue.setFont(new java.awt.Font("Tahoma", 1, 100)); // NOI18N
-        jlabValue.setText("0.000");
+        jlabTimer.setFont(new java.awt.Font("Tahoma", 1, 100)); // NOI18N
+        jlabTimer.setText("0.000");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        jpanCenter.add(jlabValue, gridBagConstraints);
+        jpanCenter.add(jlabTimer, gridBagConstraints);
 
         getContentPane().add(jpanCenter, java.awt.BorderLayout.CENTER);
 
@@ -118,6 +134,12 @@ public class Client extends javax.swing.JFrame {
     private void jbutDisconnectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutDisconnectActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jbutDisconnectActionPerformed
+
+    private void jbutConnectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutConnectActionPerformed
+        System.out.println("Button pressed" + Thread.currentThread().getId());
+        ConnectionWorker worker = new MyConnectionWorker("127.0.0.1", 8080);
+        worker.execute();  
+    }//GEN-LAST:event_jbutConnectActionPerformed
 
     /**
      * @param args the command line arguments
@@ -163,10 +185,40 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JButton jbutStop;
     private javax.swing.JLabel jlab1ms;
     private javax.swing.JLabel jlabRefreshrate;
-    private javax.swing.JLabel jlabValue;
+    private javax.swing.JLabel jlabTimer;
     private javax.swing.JPanel jpanCenter;
     private javax.swing.JPanel jpanEast;
     private javax.swing.JPanel jpanNorth;
     private javax.swing.JSlider jslideRate;
     // End of variables declaration//GEN-END:variables
+    
+    public void handleResponse(Response resp) {
+        
+    }
+    
+    private class MyConnectionWorker extends ConnectionWorker {
+
+        public MyConnectionWorker(String host, int port) throws IOException {
+            super(host, port);
+        }
+
+        @Override
+        protected void done() {
+            
+            try {
+                String ergebnis = get();
+                System.out.println(ergebnis + " " + Thread.currentThread().getId());
+                jlabTimer.setText(ergebnis);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        @Override
+        protected void process(List<Integer> chunks) {
+            for (int x : chunks) {
+                System.out.println("Process " + x + "Thread " + Thread.currentThread().getId());
+            }
+        }  
+    }
 }

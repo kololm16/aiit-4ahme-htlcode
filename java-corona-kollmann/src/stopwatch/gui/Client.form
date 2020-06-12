@@ -49,6 +49,9 @@
           <Properties>
             <Property name="text" type="java.lang.String" value="Connect"/>
           </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jbutConnectActionPerformed"/>
+          </Events>
         </Component>
         <Component class="javax.swing.JButton" name="jbutDisconnect">
           <Properties>
@@ -95,7 +98,7 @@
 
       <Layout class="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout"/>
       <SubComponents>
-        <Component class="javax.swing.JLabel" name="jlabValue">
+        <Component class="javax.swing.JLabel" name="jlabTimer">
           <Properties>
             <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
               <Font name="Tahoma" size="100" style="1"/>
