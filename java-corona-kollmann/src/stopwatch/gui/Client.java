@@ -5,9 +5,15 @@
  */
 package stopwatch.gui;
 
+import com.google.gson.Gson;
 import java.awt.Dimension;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.List;
+import javax.swing.JOptionPane;
+import stopwatch.server.Request;
 import stopwatch.server.Response;
 
 /**
@@ -15,7 +21,12 @@ import stopwatch.server.Response;
  * @author olive
  */
 public class Client extends javax.swing.JFrame {
-
+    private MyConnectionWorker worker;
+    
+    public boolean tryToStart;
+    private boolean tryToStop;
+    private boolean tryToClear;
+    private boolean tryToEnd;
     /**
      * Creates new form Client
      */
@@ -92,9 +103,19 @@ public class Client extends javax.swing.JFrame {
         jpanEast.add(jbutStop);
 
         jbutClear.setText("Clear");
+        jbutClear.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jbutClearActionPerformed(evt);
+            }
+        });
         jpanEast.add(jbutClear);
 
         jbutEnd.setText("End");
+        jbutEnd.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jbutEndActionPerformed(evt);
+            }
+        });
         jpanEast.add(jbutEnd);
 
         getContentPane().add(jpanEast, java.awt.BorderLayout.EAST);
@@ -124,11 +145,11 @@ public class Client extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jbutStopActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutStopActionPerformed
-        // TODO add your handling code here:
+        tryToStop = true;
     }//GEN-LAST:event_jbutStopActionPerformed
 
     private void jbutStartActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutStartActionPerformed
-        // TODO add your handling code here:
+        tryToStart = true;
     }//GEN-LAST:event_jbutStartActionPerformed
 
     private void jbutDisconnectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutDisconnectActionPerformed
@@ -140,6 +161,14 @@ public class Client extends javax.swing.JFrame {
         ConnectionWorker worker = new MyConnectionWorker("127.0.0.1", 8080);
         worker.execute();  
     }//GEN-LAST:event_jbutConnectActionPerformed
+
+    private void jbutClearActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutClearActionPerformed
+        tryToClear = true;
+    }//GEN-LAST:event_jbutClearActionPerformed
+
+    private void jbutEndActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutEndActionPerformed
+        tryToEnd = true;
+    }//GEN-LAST:event_jbutEndActionPerformed
 
     /**
      * @param args the command line arguments
@@ -211,14 +240,48 @@ public class Client extends javax.swing.JFrame {
                 jlabTimer.setText(ergebnis);
             } catch (Exception ex) {
                 ex.printStackTrace();
+                JOptionPane.showMessageDialog(Client.this, "Fehler beim Beenden", "Fehler", JOptionPane.ERROR_MESSAGE);
             }
         }
 
         @Override
-        protected void process(List<Integer> chunks) {
-            for (int x : chunks) {
-                System.out.println("Process " + x + "Thread " + Thread.currentThread().getId());
+        protected void process(List<Response> chunks) {
+            for(Response x : chunks) {
+                System.out.println("Process" + x + "Thread" + Thread.currentThread().getName());
+                if (x.isMaster()) {
+                    jbutStart.setEnabled(true);
+                } else {
+                    
+                }
+                jlabTimer.setText(x.time);
             }
+        }  
+        
+        @Override
+        protected String doInBackground() throws Exception {
+            final Gson g = new Gson();
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            final OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream());
+            while(true) {
+                try{
+                    final Request requ = new Request(true, tryToStart, tryToStop, tryToClear, tryToEnd);
+                    final String reqString = g.toJson(requ);
+                    writer.write(reqString);
+                    writer.flush();
+
+                    tryToStart = false;
+                    tryToStop = false;
+                    tryToClear = false;
+                    tryToEnd = false;
+
+                    final String respString = reader.readLine();
+                    resp = g.fromJson(respString, Response.class);
+                    publish(resp);
+                } catch(Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+            return "OK";
         }  
     }
 }
