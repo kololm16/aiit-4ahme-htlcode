@@ -23,20 +23,12 @@ import stopwatch.server.Response;
 public class Client extends javax.swing.JFrame {
     private MyConnectionWorker worker;
     
-    public boolean tryToStart;
-    private boolean tryToStop;
-    private boolean tryToClear;
-    private boolean tryToEnd;
-   
     
     public Client() {
         initComponents();
-        jbutClear.setVisible(false);
-        jbutDisconnect.setVisible(false);
-        jbutEnd.setVisible(false);
-        jbutStart.setVisible(false);
-        jbutStop.setVisible(false);
-        jbutConnect.setVisible(true);
+        setTitle("Stoppuhr");
+        setMinimumSize(new Dimension(300, 350));
+        setLocationRelativeTo(null);
     }
 
     /**
@@ -144,29 +136,41 @@ public class Client extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jbutStopActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutStopActionPerformed
-        tryToStop = true;
+        worker.setTryToStop(true);
     }//GEN-LAST:event_jbutStopActionPerformed
 
     private void jbutStartActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutStartActionPerformed
-        tryToStart = true;
+        worker.setTryToStart(true);
     }//GEN-LAST:event_jbutStartActionPerformed
 
     private void jbutDisconnectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutDisconnectActionPerformed
-        // TODO add your handling code here:
+        worker.setCancel(true);
+        jbutConnect.setEnabled(true);
+        jbutDisconnect.setEnabled(false);
+        jbutStart.setEnabled(false);
+        jbutStop.setEnabled(false);
+        jbutClear.setEnabled(false);
+        jbutEnd.setEnabled(false);
     }//GEN-LAST:event_jbutDisconnectActionPerformed
 
     private void jbutConnectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutConnectActionPerformed
-        System.out.println("Button pressed" + Thread.currentThread().getId());
-        ConnectionWorker worker = new MyConnectionWorker("127.0.0.1", 8080);
-        worker.execute();  
+        try {
+            worker = new MyConnectionWorker("127.0.0.1", 8080);
+            worker.execute();
+            jbutConnect.setEnabled(false);
+            jbutDisconnect.setEnabled(true);
+            jbutEnd.setEnabled(true);
+        } catch(Exception ex) {
+            JOptionPane.showMessageDialog(this, "Konnte nicht mit dem Server verbinden", "Fehler", JOptionPane.ERROR_MESSAGE);
+        }  
     }//GEN-LAST:event_jbutConnectActionPerformed
 
     private void jbutClearActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutClearActionPerformed
-        tryToClear = true;
+        worker.setTryToClear(true);
     }//GEN-LAST:event_jbutClearActionPerformed
 
     private void jbutEndActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbutEndActionPerformed
-        tryToEnd = true;
+        worker.setTryToEnd(true);
     }//GEN-LAST:event_jbutEndActionPerformed
 
     /**
@@ -219,10 +223,7 @@ public class Client extends javax.swing.JFrame {
     private javax.swing.JPanel jpanNorth;
     private javax.swing.JSlider jslideRate;
     // End of variables declaration//GEN-END:variables
-    
-    public void handleResponse(Response resp) {
-        
-    }
+
     
     private class MyConnectionWorker extends ConnectionWorker {
 
@@ -231,56 +232,45 @@ public class Client extends javax.swing.JFrame {
         }
 
         @Override
-        protected void done() {
-            
-            try {
-                String ergebnis = get();
-                System.out.println(ergebnis + " " + Thread.currentThread().getId());
-                jlabTimer.setText(ergebnis);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(Client.this, "Fehler beim Beenden", "Fehler", JOptionPane.ERROR_MESSAGE);
+        protected void process(List<Response> list) {
+            for(Response r : list) {
+                if(r.isMaster()) {
+                    jbutConnect.setEnabled(false);
+                    jbutDisconnect.setEnabled(true);
+                    jbutStart.setEnabled(true);
+                    jbutStop.setEnabled(true);
+                    jbutClear.setEnabled(true);
+                    jbutEnd.setEnabled(true);
+                } else {
+                    jbutConnect.setEnabled(false);
+                    jbutDisconnect.setEnabled(true);
+                    jbutStart.setEnabled(false);
+                    jbutStop.setEnabled(false);
+                    jbutClear.setEnabled(false);
+                    jbutEnd.setEnabled(false);
+                }  
+                
+                if(r.isRunning()) {
+                    jbutStart.setEnabled(false);
+                    jbutStop.setEnabled(true);
+                    jbutClear.setEnabled(true);
+                } else {
+                    jbutStart.setEnabled(true);
+                    jbutStop.setEnabled(false);
+                    jbutClear.setEnabled(false);                    
+                }
+                jlabTimer.setText(String.format("%.3f", r.getTime()));
             }
         }
-
-        @Override
-        protected void process(List<Response> chunks) {
-            for(Response x : chunks) {
-                System.out.println("Process" + x + "Thread" + Thread.currentThread().getName());
-                if (x.isMaster()) {
-                    jbutStart.setEnabled(true);
-                } else {
-                    
-                }
-                jlabTimer.setText(x.time);
-            }
-        }  
         
         @Override
-        protected String doInBackground() throws Exception {
-            final Gson g = new Gson();
-            final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            final OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream());
-            while(true) {
-                try{
-                    final Request requ = new Request(true, tryToStart, tryToStop, tryToClear, tryToEnd);
-                    final String reqString = g.toJson(requ);
-                    writer.write(reqString);
-                    writer.flush();
-
-                    tryToStart = false;
-                    tryToStop = false;
-                    tryToClear = false;
-                    tryToEnd = false;
-
-                    final String respString = reader.readLine();
-                    resp = g.fromJson(respString, Response.class);
-                    publish(resp);
-                } catch(Exception ex) {
-                    ex.printStackTrace();
-                }
+        protected void done() {
+            try {
+                get();
+            } catch(Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(Client.this, "Unbekannter Fehler", "Fehler", JOptionPane.ERROR_MESSAGE);
             }
-            return "OK";
-        }  
+        }
     }
 }
