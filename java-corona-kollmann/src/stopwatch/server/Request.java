@@ -5,6 +5,7 @@ package stopwatch.server;
  * @author olive
  */
 public class Request {
+    
     public Boolean master;
     public Boolean start;
     public Boolean stop;

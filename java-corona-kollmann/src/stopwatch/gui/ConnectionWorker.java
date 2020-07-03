@@ -18,8 +18,6 @@ import stopwatch.server.Response;
 public class ConnectionWorker extends SwingWorker<String, Integer> {
     private Socket socket;
     
-    
-    
     public ConnectionWorker(String host, int port) throws IOException {
         socket = new Socket(host, port);
     }

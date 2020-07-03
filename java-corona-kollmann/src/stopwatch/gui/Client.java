@@ -27,9 +27,8 @@ public class Client extends javax.swing.JFrame {
     private boolean tryToStop;
     private boolean tryToClear;
     private boolean tryToEnd;
-    /**
-     * Creates new form Client
-     */
+   
+    
     public Client() {
         initComponents();
         jbutClear.setVisible(false);
